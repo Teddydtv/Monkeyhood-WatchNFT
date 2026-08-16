@@ -359,6 +359,9 @@ async function submitOwnedSearch(){
   } else if (result.status === 'not_found') {
     statusEl.textContent = `Couldn't find "${result.query}". Try pasting the exact OpenSea collection URL or slug.`;
     statusEl.className = 'search-status err';
+  } else if (result.status === 'excluded_currency') {
+    statusEl.textContent = `"${result.query}" is priced in USDG, not ETH — this app only tracks ETH-denominated Robinhood Chain collections.`;
+    statusEl.className = 'search-status err';
   } else {
     statusEl.textContent = 'Type a collection name, slug, or URL first.';
     statusEl.className = 'search-status err';

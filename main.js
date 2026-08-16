@@ -285,6 +285,24 @@ function slugify(s) {
   return s.trim().toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-');
 }
 
+const EXCLUDED_CURRENCY_SYMBOLS = new Set(['USDG']); // Robinhood Chain collections priced in these currencies are hidden — this app tracks the chain's ETH-denominated market, not stablecoin-denominated listings
+
+// True if a collection's floor price (or its accepted payment tokens, as a fallback) is denominated in
+// an excluded currency like USDG rather than ETH. stats.total.floor_price_symbol is checked first since
+// it directly reflects what currency the floor price figure itself is quoted in and costs no extra API
+// call (stats is already fetched for every collection); detail.payment_tokens is a fallback for the rare
+// case where floor_price_symbol is missing (e.g. a collection with no active listings).
+function isExcludedCurrencyCollection(stats, detail) {
+  const floorSymbol = (stats?.total?.floor_price_symbol || '').toUpperCase();
+  if (floorSymbol && EXCLUDED_CURRENCY_SYMBOLS.has(floorSymbol)) return true;
+  const tokens = detail?.payment_tokens;
+  if (Array.isArray(tokens) && tokens.length) {
+    const allExcluded = tokens.every(t => EXCLUDED_CURRENCY_SYMBOLS.has((t.symbol || '').toUpperCase()));
+    if (allExcluded) return true;
+  }
+  return false;
+}
+
 async function resolveCollectionFromQuery(query, cfg) {
   const q = (query || '').trim();
   if (!q) return { status: 'empty' };
@@ -302,7 +320,10 @@ async function resolveCollectionFromQuery(query, cfg) {
   for (const candidate of candidates) {
     try {
       const detail = await fetchCollectionDetail(candidate, cfg.openseaApiKey);
-      if (detail) return { status: 'found', slug: candidate, name: detail.name || candidate };
+      if (detail) {
+        if (isExcludedCurrencyCollection(null, detail)) return { status: 'excluded_currency', query: q };
+        return { status: 'found', slug: candidate, name: detail.name || candidate };
+      }
     } catch (e) { /* try next candidate, or fall through to not_found */ }
   }
 
@@ -362,6 +383,10 @@ async function pollOnce() {
     if (!slug) continue;
     try {
       const stats = await fetchCollectionStats(slug, cfg.openseaApiKey);
+
+      // Skip USDG-denominated collections before spending any further API calls on them
+      if (isExcludedCurrencyCollection(stats, null)) continue;
+
       const floor = stats?.total?.floor_price ?? null;
       const vol1d = stats?.intervals?.find(i => i.interval === 'one_day')?.volume ?? null;
       const sales1d = stats?.intervals?.find(i => i.interval === 'one_day')?.sales ?? null;
@@ -374,10 +399,14 @@ async function pollOnce() {
       } catch (e) { /* rate limit or transient error — leave as null, shown as n/a */ }
 
       let totalSupply = null;
+      let detail = null;
       try {
-        const detail = await fetchCollectionDetail(slug, cfg.openseaApiKey);
+        detail = await fetchCollectionDetail(slug, cfg.openseaApiKey);
         totalSupply = detail?.total_supply ?? detail?.stats?.total_supply ?? null;
       } catch (e) { /* leave as null, shown as n/a */ }
+
+      // Fallback check, for the rare case floor_price_symbol was missing from stats (e.g. no active listings)
+      if (isExcludedCurrencyCollection(stats, detail)) continue;
 
       let topOffer = null;
       try {
