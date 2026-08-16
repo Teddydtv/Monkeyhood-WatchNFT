@@ -120,6 +120,7 @@
     </div>
     <div class="header-right">
       <button id="settings-btn" class="settings-btn" title="Settings">⚙ Settings</button>
+      <button id="update-btn" class="settings-btn" title="Check GitHub for a newer version">⟳ Check for Updates</button>
       <button id="start-btn" class="settings-btn action-start" title="Start the watcher">▶ Start</button>
       <button id="stop-btn" class="settings-btn action-stop" title="Stop the watcher">⏸ Stop</button>
       <button id="exit-btn" class="settings-btn action-exit" title="Close the app completely">⏻ Exit</button>
@@ -130,6 +131,8 @@
       </div>
     </div>
   </header>
+
+  <div class="search-status" id="update-status" style="margin: 0 0 0.5rem 0;"></div>
 
   <div class="alerts-wrap" id="alerts-wrap"></div>
 
@@ -290,6 +293,34 @@ document.getElementById('use-auto-key').addEventListener('change', async (e) => 
 document.getElementById('settings-btn').addEventListener('click', () => {
   document.getElementById('settings-overlay').classList.add('open');
 });
+
+document.getElementById('update-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('update-btn');
+  const statusEl = document.getElementById('update-status');
+  btn.disabled = true;
+  statusEl.innerHTML = 'Checking GitHub for updates…';
+  statusEl.className = 'search-status pending';
+  try {
+    const result = await window.api.checkForUpdates();
+    if (result.status === 'update_available') {
+      statusEl.className = 'search-status ok';
+      statusEl.innerHTML = `Update available: v${result.latestVersion} (you have v${result.currentVersion}) — <a href="${result.downloadUrl}" target="_blank" rel="noopener">Download the new version</a>`;
+    } else if (result.status === 'up_to_date') {
+      statusEl.className = 'search-status ok';
+      statusEl.textContent = `You're on the latest version (v${result.currentVersion}).`;
+      setTimeout(() => { statusEl.textContent = ''; }, 6000);
+    } else {
+      statusEl.className = 'search-status err';
+      statusEl.textContent = result.message || 'Could not check for updates.';
+    }
+  } catch (e) {
+    statusEl.className = 'search-status err';
+    statusEl.textContent = 'Could not check for updates.';
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 document.getElementById('settings-close-btn').addEventListener('click', () => {
   document.getElementById('settings-overlay').classList.remove('open');
 });

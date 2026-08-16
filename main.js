@@ -82,6 +82,64 @@ async function resolveApiKey(cfg) {
   return cfg.openseaApiKey || '';
 }
 
+// --- Check for updates ---------------------------------------------------
+// Hits GitHub's public Releases API to see whether a newer tagged release
+// exists than the version this build was packaged with, and if so, hands
+// back a link straight to that release page. Requires the GitHub repo below
+// to be Public — GitHub's REST API returns 404 for a private repo's releases
+// to unauthenticated requests, and this app intentionally never embeds a
+// GitHub token (shipping one in a distributable would let anyone who
+// extracts the app use it too).
+const GITHUB_REPO = 'Teddydtv/Monkeyhood-WatchNFT'; // update this if the repo is ever renamed or moved
+const GITHUB_RELEASES_API = `https://api.github.com/repos/${GITHUB_REPO}/releases/latest`;
+
+// Compares two dot-separated version strings (e.g. "1.2.0" vs "1.10.0").
+// Returns 1 if a > b, -1 if a < b, 0 if equal. Non-numeric parts compare as 0.
+function compareVersions(a, b) {
+  const pa = String(a).replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+  const pb = String(b).replace(/^v/i, '').split('.').map(n => parseInt(n, 10) || 0);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const na = pa[i] || 0, nb = pb[i] || 0;
+    if (na > nb) return 1;
+    if (na < nb) return -1;
+  }
+  return 0;
+}
+
+async function checkForUpdates() {
+  const currentVersion = app.getVersion(); // reads the "version" field from package.json
+  let r;
+  try {
+    r = await fetch(GITHUB_RELEASES_API, { headers: { accept: 'application/vnd.github+json' } });
+  } catch (e) {
+    return { status: 'error', message: `Couldn't reach GitHub (${e.message}).` };
+  }
+  if (r.status === 404) {
+    return { status: 'error', message: 'No release found — the repo may be private or has no published release yet.' };
+  }
+  if (!r.ok) {
+    return { status: 'error', message: `GitHub returned ${r.status} ${r.statusText}.` };
+  }
+  const d = await r.json();
+  const latestVersion = (d.tag_name || '').replace(/^v/i, '');
+  if (!latestVersion) {
+    return { status: 'error', message: 'Unexpected response from GitHub — no tag found on the latest release.' };
+  }
+  const asset = Array.isArray(d.assets) ? d.assets.find(a => /\.zip$/i.test(a.name)) : null;
+  if (compareVersions(latestVersion, currentVersion) > 0) {
+    return {
+      status: 'update_available',
+      currentVersion,
+      latestVersion,
+      releaseUrl: d.html_url,
+      downloadUrl: asset ? asset.browser_download_url : d.html_url,
+      notes: d.body || ''
+    };
+  }
+  return { status: 'up_to_date', currentVersion, latestVersion };
+}
+
 let win = null;
 let tray = null;
 let pollTimer = null;
@@ -663,3 +721,4 @@ ipcMain.handle('search-add-collection', async (evt, query) => {
   await pollOnce(); // refreshes all columns, including full stats for the newly added collection
   return result;
 });
+ipcMain.handle('check-for-updates', () => checkForUpdates());

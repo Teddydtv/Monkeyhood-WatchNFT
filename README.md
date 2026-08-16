@@ -59,6 +59,14 @@ This is a **manually curated watchlist**, not a wallet scan. The app has no wall
 
 Robinhood Chain collections can be priced in ETH or in **USDG** (a stablecoin). This app is built around ETH-denominated floor prices, volume, and offers — mixing the two would make the numbers meaningless (a "floor" in USDG isn't comparable to a "floor" in ETH). So USDG-denominated collections are automatically excluded everywhere: the Verified/Unverified feed, and the Owned search bar (trying to add one shows an explanation instead of adding it). This is checked via OpenSea's `floor_price_symbol` field, with a fallback check against the collection's accepted payment tokens for the rare case a collection has no active listings to derive a floor price from.
 
+## Checking for updates
+
+The **"⟳ Check for Updates"** button (top right) hits GitHub's public Releases API for this repo, compares the latest published tag against the version this build was packaged with, and links straight to the release page to download a newer one if available.
+
+This requires the GitHub repo to be **Public**. GitHub's API returns nothing for a private repo's releases unless the request is authenticated, and this app deliberately never ships a GitHub token inside the app itself — anyone who extracted the app could pull that token out and use it, which would be a real problem for a private repo. If the repo stays Private, this button will show an error instead of finding the release.
+
+If you ever rename or move the repo, update the `GITHUB_REPO` constant near the top of `main.js` to match.
+
 ## Known limitations
 
 - "24h floor high" is tracked by the app itself (OpenSea's API doesn't expose historical floor data), so it only becomes meaningful after the app has been running for a while

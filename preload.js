@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   addOwned: (slug) => ipcRenderer.invoke('add-owned', slug),
   removeOwned: (slug) => ipcRenderer.invoke('remove-owned', slug),
   searchAddCollection: (query) => ipcRenderer.invoke('search-add-collection', query),
+  checkForUpdates: () => ipcRenderer.invoke('check-for-updates'),
   onEthUpdate: (cb) => ipcRenderer.on('eth-update', (_e, data) => cb(data)),
   onCollectionsUpdate: (cb) => ipcRenderer.on('collections-update', (_e, data) => cb(data)),
   onCollectionsError: (cb) => ipcRenderer.on('collections-error', (_e, msg) => cb(msg)),
