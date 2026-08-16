@@ -11,6 +11,7 @@ A desktop app (Windows/macOS/Linux via Electron) that watches NFT collections on
 - Background polling via a system tray process — closing the window doesn't stop it
 - Native Windows/macOS/Linux notifications on big floor or volume moves, with a click-through link to the collection on OpenSea (and to the collection's latest tweet, if an X/Twitter API token is configured)
 - Search bar to add any collection to your Owned watchlist by name, slug, or OpenSea URL
+- Only tracks ETH-denominated collections — USDG-priced collections are automatically filtered out (see below)
 
 ## Running it
 
@@ -53,6 +54,10 @@ Optional. OpenSea has no free way to look up an account's latest tweet, so this 
 ## About "Owned"
 
 This is a **manually curated watchlist**, not a wallet scan. The app has no wallet connection and can't know what you actually hold on-chain — right-click any collection to add or remove it from Owned.
+
+## About the USDG filter
+
+Robinhood Chain collections can be priced in ETH or in **USDG** (a stablecoin). This app is built around ETH-denominated floor prices, volume, and offers — mixing the two would make the numbers meaningless (a "floor" in USDG isn't comparable to a "floor" in ETH). So USDG-denominated collections are automatically excluded everywhere: the Verified/Unverified feed, and the Owned search bar (trying to add one shows an explanation instead of adding it). This is checked via OpenSea's `floor_price_symbol` field, with a fallback check against the collection's accepted payment tokens for the rare case a collection has no active listings to derive a floor price from.
 
 ## Known limitations
 
