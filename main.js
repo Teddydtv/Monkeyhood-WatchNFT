@@ -91,7 +91,7 @@ let floorHistory = {}; // slug -> [{ t, floor }, ...] — used to derive a rolli
 let ownedSlugs = new Set(); // user-curated watchlist, toggled via right-click
 let lastResultsCache = []; // most recent poll's collection results, reused to re-bucket instantly on owned add/remove
 let isQuitting = false;
-const NO_MOVE_LIMIT = 10;
+const NO_MOVE_LIMIT = 4;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function loadOwned() {

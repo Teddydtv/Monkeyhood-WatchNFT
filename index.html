@@ -396,7 +396,7 @@ window.api.onAlertsUpdate((alerts) => {
   wrap.innerHTML = alerts.map(a => `
     <a class="alert-card ${a.direction}" href="${a.openseaUrl}" target="_blank" data-slug="${a.slug}" oncontextmenu="dismissAlertCard(event, '${a.slug}')">
       <div><b>${a.name}</b>: ${a.detail}${a.tweetUrl ? ` — <span class="tweet-link" onclick="event.preventDefault();event.stopPropagation();window.open('${a.tweetUrl}','_blank')">view tweet</span>` : ` — <span class="tweet-status">${a.tweetStatusText || ''}</span>`}</div>
-      <div class="meta">${a.noMoveCount > 0 ? `Quiet for ${a.noMoveCount} check(s) — drops off after 10` : 'Just moved'} · click to open on OpenSea · right-click to dismiss</div>
+      <div class="meta">${a.noMoveCount > 0 ? `Quiet for ${a.noMoveCount} check(s) — drops off after 4` : 'Just moved'} · click to open on OpenSea · right-click to dismiss</div>
     </a>
   `).join('');
 });
